@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'; // v1.0.0
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
