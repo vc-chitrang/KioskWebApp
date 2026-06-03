@@ -24,34 +24,23 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel
 
-      # Download project settings + production env vars to repo root .vercel/
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      # Copy Vercel's production env vars into frontend/ so Vite can read them at build time
-      - name: Inject env vars into frontend
-        run: |
-          if [ -f .vercel/.env.production.local ]; then
-            cp .vercel/.env.production.local frontend/.env.production.local
-            echo "Env vars injected:"
-            grep "^VITE_" frontend/.env.production.local || echo "(no VITE_ vars found — check Vercel dashboard)"
-          else
-            echo "WARNING: .vercel/.env.production.local not found"
-          fi
-
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
 
-      # Vite will now read VITE_API_URL from frontend/.env.production.local
+      # Pass VITE_API_URL directly from GitHub secret — guaranteed to reach Vite at build time
       - name: Build
         working-directory: frontend
         run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
-      # Package dist/ into the .vercel/output format for --prebuilt deploy
       - name: Prepare Vercel output structure
         run: |
           mkdir -p .vercel/output/static
