@@ -7,7 +7,7 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
-  workflow_dispatch:   # allows manual trigger from GitHub Actions UI
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -24,15 +24,14 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel
 
-      # Pull project settings + env vars (does NOT build)
+      # Run from repo root — Vercel uses the "Root Directory: frontend" setting correctly
       - name: Pull Vercel environment
-        working-directory: frontend
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      # Build the app ourselves — avoids "spawn sh ENOENT" from vercel build
+      # npm commands run inside frontend/ where package.json lives
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
@@ -41,17 +40,15 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      # Convert dist/ into the .vercel/output format that --prebuilt expects
+      # Create .vercel/output at repo root — where vercel deploy --prebuilt looks
       - name: Prepare Vercel output structure
-        working-directory: frontend
         run: |
           mkdir -p .vercel/output/static
-          cp -r dist/. .vercel/output/static/
+          cp -r frontend/dist/. .vercel/output/static/
           echo '{"version":3}' > .vercel/output/config.json
 
-      # Deploy the pre-built output — no build step runs on Vercel side
+      # Run from repo root — no path doubling
       - name: Deploy to Vercel
-        working-directory: frontend
         run: vercel deploy --prebuilt --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
